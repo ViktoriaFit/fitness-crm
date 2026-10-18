@@ -1,7 +1,10 @@
+import os
+from dotenv import load_dotenv
 from fastapi import FastAPI, Form
 from fastapi.responses import HTMLResponse
 import psycopg2
-import os
+
+load_dotenv()
 
 app = FastAPI()
 
@@ -14,10 +17,10 @@ def init_db():
         CREATE TABLE IF NOT EXISTS clients (
             id SERIAL PRIMARY KEY, 
             last_name TEXT, 
-            phone TEXT, 
+            visits INTEGER,
             payment_date TEXT,
             expiry_date TEXT,
-            visits INTEGER
+            phone TEXT
         )
     """)
     conn.commit()
@@ -62,10 +65,10 @@ def get_html(clients_html):
             
             <form action="/add_client" method="post" class="form-group">
                 <input type="text" name="last_name" placeholder="Фамилия и Имя" required>
-                <input type="text" name="phone" placeholder="Телефон" required>
+                <input type="number" name="visits" placeholder="Посещений (8/12)" required>
                 <input type="date" name="payment_date" required title="Дата оплаты">
                 <input type="date" name="expiry_date" required title="Действует до">
-                <input type="number" name="visits" placeholder="Посещений (8/12)" required>
+                <input type="text" name="phone" placeholder="Телефон" required>
                 <button type="submit">Добавить</button>
             </form>
 
@@ -80,7 +83,7 @@ def get_html(clients_html):
 def read_index():
     conn = psycopg2.connect(PG_CONN)
     cursor = conn.cursor()
-    cursor.execute("SELECT id, last_name, phone, payment_date, expiry_date, visits FROM clients")
+    cursor.execute("SELECT id, last_name, visits, payment_date, expiry_date, phone FROM clients")
     rows = cursor.fetchall()
     conn.close()
 
@@ -88,16 +91,16 @@ def read_index():
     for row in rows:
         client_id = row[0]
         last_name = row[1]
-        phone = row[2]
+        visits = row[2]
         pay_date = row[3]
         exp_date = row[4]
-        visits = row[5]
+        phone = row[5]
         
         clients_html += f"""
         <li>
             <div class="client-info">
                 <span class="client-name">{last_name}</span>
-                <span class="client-details">📞 {phone} | 📅 Оплата: {pay_date} | ⌛ До: {exp_date} | 🏋️ Посещений: {visits}</span>
+                <span class="client-details">🏋️ Посещений: {visits} | 📅 Оплата: {pay_date} | ⌛ До: {exp_date} | 📞 {phone}</span>
             </div>
             <a href="/delete/{client_id}" class="delete-btn">Удалить</a>
         </li>
@@ -108,16 +111,16 @@ def read_index():
 @app.post("/add_client")
 def add_client(
     last_name: str = Form(...), 
-    phone: str = Form(...), 
+    visits: int = Form(...),
     payment_date: str = Form(...),
     expiry_date: str = Form(...),
-    visits: int = Form(...)
+    phone: str = Form(...)
 ):
     conn = psycopg2.connect(PG_CONN)
     cursor = conn.cursor()
     cursor.execute(
-        "INSERT INTO clients (last_name, phone, payment_date, expiry_date, visits) VALUES (%s, %s, %s, %s, %s)", 
-        (last_name, phone, payment_date, expiry_date, visits)
+        "INSERT INTO clients (last_name, visits, payment_date, expiry_date, phone) VALUES (%s, %s, %s, %s, %s)", 
+        (last_name, visits, payment_date, expiry_date, phone)
     )
     conn.commit()
     conn.close()
