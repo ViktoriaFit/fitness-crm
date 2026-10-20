@@ -107,34 +107,15 @@ def get_html(clients_html, search_query=""):
             </form>
 
             <h3>Добавить клиента:</h3>
-            <form action="/add_client" method="post" class="form-group" id="addForm">
+            <form action="/add_client" method="post" class="form-group">
                 <input type="text" name="last_name" placeholder="Фамилия и Имя" required>
                 <input type="number" name="visits" placeholder="Занятий (8/12)" required style="width:100px;">
-                <input type="date" name="payment_date" required title="Дата оплаты" id="pay_date" onchange="calcFirst()">
-                <input type="text" name="days_of_week" placeholder="Дни (Пн, Ср, Пт)" required style="width:130px;" id="days_input" onchange="calcFirst()">
-                <input type="date" name="start_date" required title="Дата первого занятия" id="start_date">
+                <input type="date" name="payment_date" required title="Дата оплаты">
+                <input type="date" name="start_date" placeholder="Дата 1-го занятия" title="Дата первого занятия (если пусто — посчитается автоматически)">
+                <input type="text" name="days_of_week" placeholder="Дни (Пн, Ср, Пт)" required style="width:130px;">
                 <input type="text" name="phone" placeholder="Телефон" required>
                 <button type="submit">Добавить</button>
             </form>
-
-            <script>
-                function calcFirst() {{
-                    var pay = document.getElementById('pay_date').value;
-                    var days = document.getElementById('days_input').value;
-                    if (!pay || !days) return;
-                    
-                    var map = {{"Пн": 1, "Вт": 2, "Ср": 3, "Чт": 4, "Пт": 5, "Сб": 6, "Вс": 0}};
-                    var dayList = days.split(',').map(s => s.trim()).filter(s => s in map).map(s => map[s]);
-                    if (dayList.length === 0) return;
-                    
-                    var d = new Date(pay);
-                    d.setDate(d.getDate() + 1);
-                    while (!dayList.includes(d.getDay())) {{
-                        d.setDate(d.getDate() + 1);
-                    }}
-                    document.getElementById('start_date').value = d.toISOString().split('T')[0];
-                }}
-            </script>
 
             <ul>{clients_html}</ul>
         </div>
@@ -201,7 +182,11 @@ def extend_client(client_id: int):
     return HTMLResponse("<script>window.location.href='/';</script>")
 
 @app.post("/add_client")
-def add_client(last_name: str = Form(...), visits: int = Form(...), payment_date: str = Form(...), days_of_week: str = Form(...), start_date: str = Form(...), phone: str = Form(...)):
+def add_client(last_name: str = Form(...), visits: int = Form(...), payment_date: str = Form(...), days_of_week: str = Form(...), phone: str = Form(...), start_date: str = Form(None)):
+    # Если дата первого занятия не указана - считаем сами
+    if not start_date:
+        start_date = find_first_day(payment_date, days_of_week)
+        
     expiry_date = calculate_expiry(start_date, visits, days_of_week)
     
     conn = psycopg2.connect(PG_CONN)
