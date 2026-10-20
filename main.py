@@ -11,17 +11,26 @@ PG_CONN = os.environ.get("DATABASE_URL")
 
 DAYS_MAP = {"Пн": 0, "Вт": 1, "Ср": 2, "Чт": 3, "Пт": 4, "Сб": 5, "Вс": 6}
 
-def calculate_expiry(start_date_str, visits, days_str):
+# Новая функция: находит первый день занятия и считает дату окончания
+def calculate_schedule(payment_date_str, visits, days_str):
     try:
-        start_date = datetime.strptime(start_date_str, "%Y-%m-%d")
+        pay_date = datetime.strptime(payment_date_str, "%Y-%m-%d")
         days_list = [d.strip() for d in days_str.split(",") if d.strip() in DAYS_MAP]
+        
         if not days_list:
-            return (start_date + timedelta(days=30)).strftime("%Y-%m-%d")
+            return payment_date_str, (pay_date + timedelta(days=30)).strftime("%Y-%m-%d")
         
         target_weekdays = set(DAYS_MAP[d] for d in days_list)
-        sessions_count = 0
-        current_date = start_date
         
+        # Ищем первый день тренировки (начиная со следующего дня после оплаты)
+        current_date = pay_date + timedelta(days=1)
+        while current_date.weekday() not in target_weekdays:
+            current_date += timedelta(days=1)
+        
+        start_date = current_date
+        sessions_count = 0
+        
+        # Отсчитываем нужное количество занятий
         while sessions_count < visits:
             if current_date.weekday() in target_weekdays:
                 sessions_count += 1
@@ -29,9 +38,10 @@ def calculate_expiry(start_date_str, visits, days_str):
                     break
             current_date += timedelta(days=1)
         
-        return current_date.strftime("%Y-%m-%d")
+        return start_date.strftime("%Y-%m-%d"), current_date.strftime("%Y-%m-%d")
     except:
-        return (datetime.now() + timedelta(days=30)).strftime("%Y-%m-%d")
+        today = datetime.now()
+        return today.strftime("%Y-%m-%d"), (today + timedelta(days=30)).strftime("%Y-%m-%d")
 
 def init_db():
     conn = psycopg2.connect(PG_CONN)
@@ -97,7 +107,6 @@ def get_html(clients_html, search_query=""):
                 <input type="text" name="last_name" placeholder="Фамилия и Имя" required>
                 <input type="number" name="visits" placeholder="Занятий (8/12)" required style="width:100px;">
                 <input type="date" name="payment_date" required title="Дата оплаты">
-                <input type="date" name="start_date" required title="Первое занятие">
                 <input type="text" name="days_of_week" placeholder="Дни (Пн, Ср, Пт)" required style="width:130px;">
                 <input type="text" name="phone" placeholder="Телефон" required>
                 <button type="submit">Добавить</button>
@@ -159,13 +168,9 @@ def extend_client(client_id: int):
     visits, old_expiry, days = row
     
     new_payment = datetime.now().strftime("%Y-%m-%d")
-    try:
-        old_date = datetime.strptime(old_expiry, "%Y-%m-%d")
-        new_start = (old_date + timedelta(days=1)).strftime("%Y-%m-%d")
-    except:
-        new_start = new_payment
-
-    new_expiry = calculate_expiry(new_start, visits, days or "")
+    
+    # Берем дату оплаты и считаем от нее
+    new_start, new_expiry = calculate_schedule(new_payment, visits, days or "")
 
     cursor.execute("UPDATE clients SET payment_date=%s, start_date=%s, expiry_date=%s WHERE id=%s", (new_payment, new_start, new_expiry, client_id))
     conn.commit()
@@ -173,8 +178,9 @@ def extend_client(client_id: int):
     return HTMLResponse("<script>window.location.href='/';</script>")
 
 @app.post("/add_client")
-def add_client(last_name: str = Form(...), visits: int = Form(...), payment_date: str = Form(...), start_date: str = Form(...), days_of_week: str = Form(...), phone: str = Form(...)):
-    expiry_date = calculate_expiry(start_date, visits, days_of_week)
+def add_client(last_name: str = Form(...), visits: int = Form(...), payment_date: str = Form(...), days_of_week: str = Form(...), phone: str = Form(...)):
+    # Автоматически считаем старт и окончание
+    start_date, expiry_date = calculate_schedule(payment_date, visits, days_of_week)
     
     conn = psycopg2.connect(PG_CONN)
     cursor = conn.cursor()
@@ -200,8 +206,8 @@ def edit_page(client_id: int):
             <label>Фамилия и Имя:</label><input type="text" name="last_name" value="{c[0]}" required>
             <label>Количество занятий:</label><input type="number" name="visits" value="{c[1]}" required>
             <label>Дата оплаты:</label><input type="date" name="payment_date" value="{c[2]}" required>
-            <label>Дата первого занятия:</label><input type="date" name="start_date" value="{c[3] or ''}" required>
             <label>Дни недели:</label><input type="text" name="days_of_week" value="{c[5] or ''}" placeholder="Пн, Ср, Пт" required>
+            <label>Дата первого занятия (можно изменить вручную):</label><input type="date" name="start_date" value="{c[3] or ''}" required>
             <label>Дата следующей оплаты (можно изменить вручную):</label><input type="date" name="expiry_date" value="{c[6] or ''}" required>
             <label>Телефон:</label><input type="text" name="phone" value="{c[4]}" required>
             <button type="submit">Сохранить изменения</button>
@@ -211,7 +217,7 @@ def edit_page(client_id: int):
     """)
 
 @app.post("/update/{client_id}")
-def update_client(client_id: int, last_name: str = Form(...), visits: int = Form(...), payment_date: str = Form(...), start_date: str = Form(...), days_of_week: str = Form(...), expiry_date: str = Form(...), phone: str = Form(...)):
+def update_client(client_id: int, last_name: str = Form(...), visits: int = Form(...), payment_date: str = Form(...), days_of_week: str = Form(...), start_date: str = Form(...), expiry_date: str = Form(...), phone: str = Form(...)):
     conn = psycopg2.connect(PG_CONN)
     cursor = conn.cursor()
     cursor.execute("UPDATE clients SET last_name=%s, visits=%s, payment_date=%s, start_date=%s, expiry_date=%s, phone=%s, days_of_week=%s WHERE id=%s", (last_name, visits, payment_date, start_date, expiry_date, phone, days_of_week, client_id))
