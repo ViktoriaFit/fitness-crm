@@ -187,7 +187,7 @@ def add_client(last_name: str = Form(...), visits: int = Form(...), payment_date
 def edit_page(client_id: int):
     conn = psycopg2.connect(PG_CONN)
     cursor = conn.cursor()
-    cursor.execute("SELECT last_name, visits, payment_date, start_date, phone, days_of_week FROM clients WHERE id = %s", (client_id,))
+    cursor.execute("SELECT last_name, visits, payment_date, start_date, phone, days_of_week, expiry_date FROM clients WHERE id = %s", (client_id,))
     c = cursor.fetchone()
     conn.close()
     
@@ -202,6 +202,7 @@ def edit_page(client_id: int):
             <label>Дата оплаты:</label><input type="date" name="payment_date" value="{c[2]}" required>
             <label>Дата первого занятия:</label><input type="date" name="start_date" value="{c[3] or ''}" required>
             <label>Дни недели:</label><input type="text" name="days_of_week" value="{c[5] or ''}" placeholder="Пн, Ср, Пт" required>
+            <label>Дата следующей оплаты (можно изменить вручную):</label><input type="date" name="expiry_date" value="{c[6] or ''}" required>
             <label>Телефон:</label><input type="text" name="phone" value="{c[4]}" required>
             <button type="submit">Сохранить изменения</button>
         </form>
@@ -210,9 +211,7 @@ def edit_page(client_id: int):
     """)
 
 @app.post("/update/{client_id}")
-def update_client(client_id: int, last_name: str = Form(...), visits: int = Form(...), payment_date: str = Form(...), start_date: str = Form(...), days_of_week: str = Form(...), phone: str = Form(...)):
-    expiry_date = calculate_expiry(start_date, visits, days_of_week)
-    
+def update_client(client_id: int, last_name: str = Form(...), visits: int = Form(...), payment_date: str = Form(...), start_date: str = Form(...), days_of_week: str = Form(...), expiry_date: str = Form(...), phone: str = Form(...)):
     conn = psycopg2.connect(PG_CONN)
     cursor = conn.cursor()
     cursor.execute("UPDATE clients SET last_name=%s, visits=%s, payment_date=%s, start_date=%s, expiry_date=%s, phone=%s, days_of_week=%s WHERE id=%s", (last_name, visits, payment_date, start_date, expiry_date, phone, days_of_week, client_id))
