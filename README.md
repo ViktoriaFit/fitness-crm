@@ -1,30 +1,45 @@
 # Fitness CRM
 
-A simple web application for managing fitness club clients. Built with FastAPI and SQLite.
+A full-stack web application for fitness trainers to manage their clients. Built with FastAPI, PostgreSQL, and deployed live on Render.
+
+## Live Demo
+
+https://fitness-crm-sknl.onrender.com
 
 ## Features
 
-- Add new clients with name, phone, and payment date
-- View the list of all clients
-- Delete clients from the database
-- Modern, clean UI with CSS
-- Data is saved in a SQLite database
+- **Add clients** with name, phone, number of sessions, payment date, start date, and training days (e.g., Mon, Wed, Fri).
+- **Automatic date calculation:** The app finds the first training day based on the schedule and calculates the subscription end date (last training day).
+- **Search by name:** Quickly find any client.
+- **Edit client:** Change any data, including dates, manually if needed.
+- **Extend subscription:** One click to automatically calculate new dates for the next month.
+- **Overdue warning:** The app highlights expired subscriptions in red.
+- **Mobile-friendly:** Responsive design for use on phones.
 
 ## Technologies
 
 - **Python 3.12**
-- **FastAPI** — web framework
-- **SQLite** — database
-- **HTML/CSS** — frontend
-- **Uvicorn** — server
+- **FastAPI** â€” web framework
+- **PostgreSQL** â€” cloud database (Neon)
+- **psycopg2** â€” PostgreSQL adapter for Python
+- **HTML/CSS** â€” responsive frontend
+- **Render** â€” deployment platform
 
 ## How to run
 
 1. Install dependencies:
    pip install -r requirements.txt
 
-2. Run the server:
-   python -m uvicorn.main main:app --reload
+2. Create a `.env` file with your database connection string:
+   DATABASE_URL=postgresql://user:password@host:5432/dbname
 
-3. Open in browser:
+3. Run the server:
+   uvicorn main:app --reload
+
+4. Open in browser:
    http://127.0.0.1:8000
+
+## Author
+
+Viktoria Zykova â€” Junior Python / AI Developer
+GitHub: https://github.com/ViktoriaFit
