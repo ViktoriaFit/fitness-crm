@@ -1,23 +1,21 @@
-﻿# Fitness AI CRM (RAG-based Semantic Search)
+﻿# Fitness CRM (Full-Stack Web App)
 
-## Обзор
-Это полностековое CRM-приложение для фитнес-тренеров с семантическим поиском на основе ИИ. Вместо поиска клиентов по имени, тренер может искать по смыслу (например, "клиент с болью в колене").
+## Overview
+A full-stack CRM application for fitness trainers to manage their clients. Trainers can add, view, and delete clients, track subscription expiry dates, and count visits. The application is deployed live on Render and uses a cloud PostgreSQL database.
 
-## Функции
-- Управление клиентами: добавление, просмотр и удаление.
-- Семантический поиск: использует Sentence Transformers и pgvector.
-- Адаптивный интерфейс: работает на телефоне и компьютере.
-- Облачное развертывание: проект работает на Render.
+## Features
+- **Client Management:** Add, view, and delete clients (full name, phone, payment date, subscription expiry, visits count).
+- **Responsive UI:** Mobile-friendly interface built with HTML/CSS.
+- **Cloud Database:** Data stored in cloud PostgreSQL (Neon) for persistence.
 
-## Технологии
-- Бэкенд: Python, FastAPI, Uvicorn.
-- База данных: PostgreSQL (Neon), pgvector.
-- ИИ: Sentence Transformers.
-- Фронтенд: HTML, CSS.
-- Развертывание: Render, Docker.
+## Tech Stack
+- **Backend:** Python, FastAPI, Uvicorn
+- **Database:** PostgreSQL (Neon), psycopg2
+- **Frontend:** HTML, CSS
+- **Deployment:** Render
 
-## Ссылка на живое демо
-[Посмотреть на Render](https://fitness-ai-crm.onrender.com)
+## Live Demo
+[Check out the live demo on Render](https://fitness-crm-sknl.onrender.com)
 
-## Автор
-Виктория Зыкова
+## Author
+**Viktoria Zykova** – [GitHub](https://github.com/ViktoriaFit)
